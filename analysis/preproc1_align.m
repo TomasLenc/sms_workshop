@@ -50,7 +50,7 @@ plot(tap_data_aligned(:,2)  ./ max(abs(s_rec)))
 % The two should overlap almost perfectly! 
 
 
-%%
+%% save
 
 % save the aligned continuous tapping data
 data = tap_data_aligned(:,1)'; 

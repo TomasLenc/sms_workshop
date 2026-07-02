@@ -1,11 +1,12 @@
 function [alphas, st, sm, logp] = bGLS_phase_corr(...
                 ITI, asynchronies, mean_asynchrony, mean_ITI)
-% This method computes the bGLS for cases without significant tempo changes
-% - based on Nori Jacoby's bGLS toolbox (2015), adapted by Gal Vishne
-% (2019-2021) to deal with missing or excluded values
-% Missing \ excluded taps are nan in As and R (both the interval after and the interval before)
-% then we simply erase the relevant rows and columns in the covariance matrix of the noise - 
-% so all relevant connections between variables are just part of the unmodelled noise.
+% This function computes the bGLS for cases without significant tempo
+% changes - based on Nori Jacoby's bGLS toolbox (2015), adapted by Gal
+% Vishne (2019-2021) to deal with missing or excluded values Missing \
+% excluded taps are nan in As and R (both the interval after and the
+% interval before) then we simply erase the relevant rows and columns in
+% the covariance matrix of the noise - so all relevant connections between
+% variables are just part of the unmodelled noise.
 %
 % For more information about the method see:
 % Jacoby, Tishby, Repp, Ahissar and Keller (2015)

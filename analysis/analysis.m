@@ -3,8 +3,9 @@ clear
 myblue = [66, 135, 245]/255; 
 myred = [209, 70, 48]/255; 
 
-% For efficiency, we'll use some functions from rnb_tools package (get it
-% from https://github.com/TomasLenc/rnb_tools)
+% For efficiency, we'll use some functions from rnb_tools package. Get it
+% from https://github.com/TomasLenc/rnb_tools and update the path below
+% accordingly. 
 addpath(genpath('/Users/tomaslenc/projects_git/rnb_tools/src')); 
 
 %%
