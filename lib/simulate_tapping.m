@@ -1,4 +1,4 @@
-function tap_times = simulate_tapping(stim_times, varargin)
+../lib/simulate_tapping.mfunction tap_times = simulate_tapping(stim_times, varargin)
 % Simulate sensorimotor synchronization using a linear error correction
 % model.
 %

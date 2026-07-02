@@ -8,6 +8,9 @@ myred = [209, 70, 48]/255;
 % accordingly. 
 addpath(genpath('/Users/tomaslenc/projects_git/rnb_tools/src')); 
 
+% We have some local helper functions in lib folder
+addpath(genpath('../lib')); 
+
 %%
 
 % load stimulus 
