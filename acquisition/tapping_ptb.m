@@ -1,166 +1,237 @@
-% This is a minimal script 
+%% Simple Audio Playback and Recording Example
+%
+% This script demonstrates how to:
+%   1. Create a simple metronome-like stimulus from a short sound sample.
+%   2. Using Psychtoolbox audio functions: (i) Play the stimulus, and (ii)
+%      simultaneously record audio input (e.g., participant taps). 
+%   3. Visualize the recorded signals. 
+%   4. Save the generated stimulus and recorded data for later analysis.
+%
+% The example is intended as a minimal template for sensorimotor
+% synchronization experiments and tapping tasks.
 
 clear all
 clc
 
+%% Stimulus generation
 
-%% Stimuli
+% Load a short sound event (e.g., a hi-hat sound)
+[s_event, fs] = audioread('hihat.wav');
 
-% sound event 
-[s_event, fs] = audioread('hihat.wav'); 
+% Inter-onset interval (IOI) in seconds.
+% This determines the time between successive sound events.
+ioi = 0.5;
 
-% inter-onset interval 
-ioi = 0.5; 
+% Total duration of the trial in seconds
+trial_dur = 30;
 
-% total trial duration 
-trial_dur = 30; 
+% Calculate the total number of sound events in the sequence
+n_events = trial_dur / ioi;
 
-% get the total number of sound events in the sequence
-n_events = trial_dur / ioi; 
+% Create onset times (in seconds) for all sound events
+t_onsets = [0 : n_events-1] * ioi;
 
-% prepare sound onsest sample indices for each of the N sounds in
-% this pattern cycle           
-t_onsets = [0 : n_events-1] * ioi; 
+% Convert onset times from seconds to audio sample indices
+idx_onsets = round(t_onsets * fs);
 
-% compute sample index of each event onset 
-idx_onsets = round(t_onsets * fs); 
+% Create an empty audio signal covering the entire trial duration
+N = round(trial_dur * fs);
+s = zeros(1, N);
 
-% create continuous audio sequence (no sounds yet)
-N = round(trial_dur * fs); 
-s = zeros(1, N);        
-
-% insert the sounds to the long sequence 
-for i_event=1:n_events
-    s(idx_onsets(i_event)+1 : idx_onsets(i_event)+length(s_event)) = s_event; 
+% Insert the sound event at every scheduled onset location
+for i_event = 1:n_events
+    s(idx_onsets(i_event)+1 : idx_onsets(i_event)+length(s_event)) = s_event;
 end
 
-% create a time vector
-t = [0 : N-1] / fs; 
+% Create a time vector for the complete stimulus
+t = [0 : N-1] / fs;
 
-% save the stimulus as mat file (we will need it for analysis later)
-save('stim.mat', 'ioi', 'trial_dur', 'n_events', 't_onsets', 's', 'fs'); 
+% Save the stimulus and timing information for later analysis
+save('stim.mat', 'ioi', 'trial_dur', 'n_events', 't_onsets', 's', 'fs');
 
-%% initialize PTB
 
-% setup random number generator
-seed = sum(clock * 100); 
+%% Initialize Psychtoolbox (PTB)
+
+% Initialize the random number generator using the current time
+seed = sum(clock * 100);
 RandStream.setGlobalStream(RandStream('mt19937ar', 'seed', seed));
 
-% Do dummy calls to GetSecs, WaitSecs, KbCheck to make sure
-% they are loaded and ready when we need them - without delays
-% in the wrong moment:
+% Perform dummy calls so that these functions are already loaded
+% before the experiment starts. This helps avoid timing delays
+% caused by first-time function initialization.
 WaitSecs(0.1);
 GetSecs;
 
 
-%% Open Audio
+%% Open audio devices
 
-% read the docs !
-InitializePsychSound(1); % flag reallyneedlowlatency
+% Initialize PsychPortAudio.
+% The argument '1' requests low-latency operation.
+InitializePsychSound(1);
 
-% get audio device list
+% Retrieve a list of all available audio devices
 dev = PsychPortAudio('GetDevices');
 
-%------ output ------
 
-idx_out = strcmp({dev.DeviceName}, 'UltraLite-mk5'); 
+%% Configure audio output
+
+% Find the desired playback device. Here I'm searching for the MOTU
+% UltraLite-mk5 audio interface connected via USB.  
+idx_out = strcmp({dev.DeviceName}, 'UltraLite-mk5');
 
 assert(sum(idx_out) == 1, ...
-    'I have trouble finding ultralite output device...'); 
+    'I have trouble finding ultralite output device...');
 
-dev_idx_out = dev(idx_out).DeviceIndex; 
+% Store the device index
+dev_index_out = dev(idx_out).DeviceIndex;
 
-n_chan_out = 2; 
+% Number of playback channels (stereo)
+n_chan_out = 2;
 
+% Open the playback device
 pahandle_out = PsychPortAudio('Open', ...
-                            dev_idx_out, ... % deviceid
-                            1, ... % mode (1: playback, 2: capture) 
-                            3, ... % reqlatencyclass 
-                            fs, ... %sampling rate
-                            n_chan_out); %number of output channels
-                        
-%------ intput ------
+                            dev_index_out, ...  % device index
+                            1, ...            % mode: playback
+                            3, ...            % latency class
+                            fs, ...           % sampling rate
+                            n_chan_out);      % number of channels
 
-idx_in = strcmp({dev.DeviceName}, 'UltraLite-mk5'); 
+
+%% Configure audio input
+
+% Find the desired recording device.
+%
+% On macOS, a multichannel audio interface typically appears as a single
+% audio device, with all input and output channels accessible through
+% PsychPortAudio. This makes channel selection relatively straightforward.
+%
+% On Windows, audio device enumeration depends on the driver architecture
+% and hardware configuration. Some interfaces appear as a single
+% multichannel device, whereas others expose separate channel groups
+% (e.g., Input 1&2, Input 3&4, Output 1&2, etc.) as independent devices.
+% Consequently, it is often necessary to inspect the device list and
+% identify which device corresponds to the desired channel pair.
+%
+% Older Psychtoolbox setups could optionally use ASIO drivers for direct
+% access to professional audio hardware. However, ASIO support is no
+% longer distributed with Psychtoolbox because of licensing constraints.
+% Modern PTB versions on Windows primarily use WASAPI (and, in some cases,
+% WDM/KS) for low-latency audio operation. See the documentation for
+% InitializePsychSound for additional background.
+%
+% In practice, the main task is simply to find the device corresponding to
+% the input channels carrying:
+%   (1) the tapping-box signal, and
+%   (2) the stimulus loopback signal.
+%
+% Inspect the variable 'dev' to view all available devices if you are
+% unsure which one to select.
+idx_in = strcmp({dev.DeviceName}, 'UltraLite-mk5');
 
 assert(sum(idx_out) == 1, ...
-    'I have trouble finding ultralite input device...'); 
+    'I have trouble finding ultralite input device...');
 
-dev_idx_in = dev(idx_in).DeviceIndex; 
+% Store the device index
+dev_index_in = dev(idx_in).DeviceIndex;
 
-n_chan_in = 2; 
+% Number of recording channels
+n_chan_in = 2;
 
+% Open the recording device
 pahandle_in = PsychPortAudio('Open', ...
-                                    dev_idx_in, ...
-                                    2, ...
-                                    3, ...
+                                    dev_index_in, ...
+                                    2, ...      % mode: capture
+                                    3, ...      % latency class
                                     fs, ...
                                     n_chan_in);
-  
-%% Set up audio
-                               
-% set initial PTB volume (careful with this!)
+
+
+%% Audio setup
+
+% Set playback volume.
+% Be careful with volume settings when using headphones.
 PsychPortAudio('Volume', pahandle_out, 0.1);
 
-% if we're doing capture, we need to initialize buffer with enough space
-PsychPortAudio('GetAudioData', pahandle_in, trial_dur * 2); 
+% Allocate enough recording buffer space for the entire trial
+PsychPortAudio('GetAudioData', pahandle_in, trial_dur * 2);
 
-% play a bunch of zeroes (1-s silence) to warm up the audio drivers
-s_out = zeros(n_chan_out, round(fs * 1)); 
-PsychPortAudio('FillBuffer', pahandle_out, s_out); 
-PsychPortAudio('Start', pahandle_out, 1, [], 1);  
-PsychPortAudio('Stop', pahandle_out, 1);                         
+% Play one second of silence to warm up audio drivers and reduce
+% the likelihood of timing irregularities at stimulus onset.
+s_out = zeros(n_chan_out, round(fs * 1));
+PsychPortAudio('FillBuffer', pahandle_out, s_out);
+PsychPortAudio('Start', pahandle_out, 1, [], 1);
+PsychPortAudio('Stop', pahandle_out, 1);
 
-%% playback 
 
-% prepare stereo output
-s_out = repmat(s, n_chan_out, 1); 
+%% Playback and recording
 
-% fill buffer     
-PsychPortAudio('FillBuffer', pahandle_out, s_out); 
+% Create a stereo version of the stimulus
+s_out = repmat(s, n_chan_out, 1);
 
-% START CAPTURE
-% pahandle, repetitions, when, waitForStart
-PsychPortAudio('Start', pahandle_in, 1, [], 1);  
+% Load the stimulus into the playback buffer
+PsychPortAudio('FillBuffer', pahandle_out, s_out);
 
-% START PLAYBACK
-% handle, repetitions, when=0, waitForStart
-start_time = PsychPortAudio('Start', pahandle_out, 1, [], 1);  
+% Start recording.
+%
+% Arguments:
+%   handle
+%   repetitions
+%   start time (empty = immediately)
+%   waitForStart
+PsychPortAudio('Start', pahandle_in, 1, [], 1);
 
-% STOP CAPTURE and PLAYBACK  
-% pahandle [, waitForEndOfPlayback=0] [, blockUntilStopped=1]
-PsychPortAudio('Stop', pahandle_out, 1);                         
-PsychPortAudio('Stop', pahandle_in, 1);                         
+% Start playback and store the actual onset timestamp
+%
+% Arguments:
+%   handle
+%   repetitions
+%   when (empty = immediate)
+%   waitForStart
+start_time = PsychPortAudio('Start', pahandle_out, 1, [], 1);
 
-% extract recorded audio from the buffer
-tap_data = PsychPortAudio('GetAudioData', pahandle_in); 
+% Wait until playback is finished, then stop playback
+PsychPortAudio('Stop', pahandle_out, 1);
 
-%%
-  
-t = [0 : size(tap_data,2)-1] / fs; 
+% Stop audio recording
+PsychPortAudio('Stop', pahandle_in, 1);
+
+% Retrieve all recorded audio samples from the capture buffer
+tap_data = PsychPortAudio('GetAudioData', pahandle_in);
+
+
+%% Visualize recorded signals
+
+% Create a time vector for the recorded audio
+t = [0 : size(tap_data,2)-1] / fs;
 
 figure
-subplot 211
-plot(t, tap_data(1,:), 'linew', 1.5); 
-title('tapping')
 
-subplot 212
-plot(t, tap_data(2,:), 'linew', 1.5); 
-title('stimulus (captured)')
+subplot(2,1,1)
+plot(t, tap_data(1,:), 'linew', 1.5);
+title('Tapping signal');
+xlabel('Time (s)');
+ylabel('Amplitude');
+
+subplot(2,1,2)
+plot(t, tap_data(2,:), 'linew', 1.5);
+title('Captured stimulus');
+xlabel('Time (s)');
+ylabel('Amplitude');
 
 
-%%
+%% Save recorded audio
 
-audiowrite('tap_data.wav', tap_data', fs); 
+% Save the recorded channels as a WAV file
+audiowrite('tap_data.wav', tap_data', fs);
 
 
-%%
+%% Cleanup
 
-% close all audio devices
+% Close all audio devices opened by PsychPortAudio
 PsychPortAudio('Close');
 
-% Screen Close All
+% Close all Psychtoolbox screens and windows
 sca;
 
-% release priority
+% Return MATLAB to normal priority scheduling
 Priority(0);
