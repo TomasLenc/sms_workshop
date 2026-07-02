@@ -1,137 +1,21 @@
-clear 
+% WIP: computational modeling 
 
-myblue = [66, 135, 245]/255; 
-myred = [209, 70, 48]/255; 
+clear
 
-% For efficiency, we'll use some functions from rnb_tools package. Get it
-% from https://github.com/TomasLenc/rnb_tools and update the path below
-% accordingly. 
-addpath(genpath('/Users/tomaslenc/projects_git/rnb_tools/src')); 
+myblue = [66, 135, 245]/255;
+myred = [209, 70, 48]/255;
 
-% We have some local helper functions in lib folder
-addpath(genpath('../lib')); 
+% For efficiency, we'll use some functions from the rnb_tools package.
+% Download it from:
+%
+%   https://github.com/TomasLenc/rnb_tools
+%
+% and update the path below to point to your local installation.
+addpath(genpath('/Users/tomaslenc/projects_git/rnb_tools/src'));
 
-%%
+% Add local helper functions (simulation and model-fitting code).
+addpath(genpath('../lib'));
 
-% load stimulus 
-stim_times = load('data/stim.mat'); 
-stim_ioi = stim_times.ioi; 
-
-% load tapping data (just one trial)
-tbl = readtable('data/tap_onsets.csv'); 
-tap_times = tbl.onset; 
-
-
-%% 
-
-figure('color', 'white'); 
-t = [0 : length(stim_times.s)-1] / stim_times.fs; 
-plot(t, stim_times.s, 'color', [.8, .8, .8], 'linew', 1)
-hold on 
-plot(tap_times, 0, 'o', 'MarkerFaceColor', myblue, 'MarkerEdgeColor', 'none')
-box off
-ax = gca; 
-ax.FontSize = 18; 
-
-
-%% ITIs (inter-tap intervals)
-
-% calculate inter-tap intervals 
-itis = diff(tap_times);
-
-% plot ITI distribution
-f = figure('color','white','position',[146 581 229 164]); 
-h = histogram(itis, 'binedges', [stim_ioi*0.55 : 0.02 : stim_ioi*1.55]); 
-hold on 
-plot([stim_ioi, stim_ioi], [0, max(h.Values) * 1.2],'--','color', myred,'linew',2)
-h.FaceColor = myblue; 
-h.EdgeAlpha = 0.3; 
-ax = gca; 
-ax.YTick = []; 
-ax.XTick = stim_ioi; 
-ax.XTickLabel = {}; 
-ax.XLim = [stim_ioi * 0.55, stim_ioi * 1.55]; 
-ax.YLim = [0, max(h.Values) * 1.2]; 
-ax.TickDir = 'out'; 
-box off
-% Beware of outliers (pauses in tapping). Check the distribution and remove
-% huge outliers manually. 
-
-% Often best to take median anyway
-mean(itis) 
-median(itis)
-
-
-%% phase locking with a periodic pulse (circular analysis prevents headaches)
-
-% in this case, we don't need to match tap-target one to one
-
-phase_in_sec = mod(tap_times, stim_ioi); 
-
-phase_in_rad = phase_in_sec / stim_ioi * 2*pi; 
-
-r = abs(mean(exp(1j*phase_in_rad))); 
-
-theta = angle(mean(exp(1j*phase_in_rad))); 
-
-
-f = figure('color','white','position',[146 581 229 164]); 
-ax = polaraxes; 
-
-h = polarplot(phase_in_rad, ones(length(phase_in_rad),1), 'o','color', myblue, 'linew', 1.5); 
-
-h.MarkerSize = 10; % increase marker size
-
-hold on
-
-polarplot([theta,theta], [0;r], 'color', myred, 'linew',3);  
-
-set(ax,'thetaAxisUnits','radians',...
-    'thetatick',[0,pi/2,pi,3*pi/2],...
-    'thetaticklabel',{'0','ioi/4','ioi/2','-ioi/4'},...
-    'rtick',[],'rlim',[0,1.1], 'FontSize', 16, 'GridAlpha', 1); 
-
-
-%% simulate 
-
-stim_ioi = 0.5; 
-
-trial_dur = 10; 
-
-stim_times = [0 : 0.5 : trial_dur]';
-
-tap_times = simulate_tapping(stim_times, ...
-                             'alpha', 0.2, ...
-                             'beta', 0.0, ...
-                             'Tvar', 0.01, ...
-                             'Tinit', 0.5);
-
-[stim_times, tap_times]
-
-tap_times(isnan(tap_times)) = []; 
-
-f = figure('color','white','position',[146 596 1655 149]); 
-plot([stim_times, stim_times],[-1,1],':','color', myred, 'linew',2); 
-hold on
-plot(tap_times, 0, 'o', 'color',myblue, 'MarkerFaceColor', myblue, 'MarkerSize', 10);
-box off
-ax = gca; 
-ax.FontSize = 16; 
-ax.YAxis.Visible = 'off'; 
-ax.XLim = [0, trial_dur+stim_ioi]; 
-
-      
-      
-phase_in_sec = mod(tap_times, stim_ioi); 
-phase_in_rad = phase_in_sec / stim_ioi * 2*pi; 
-itis = abs(mean(exp(1j*phase_in_rad))); 
-theta = angle(mean(exp(1j*phase_in_rad))); 
-
-plot_circ(phase_in_rad, 'mean_ph', theta, 'r', itis,...
-          'col_ind', myblue, 'alpha_ind', 1, 'marker_size', 100, 'filled', false)
-
-  
-      
       
 %% get asynchronies (matching tap-tone, headaches inevitable)
 
@@ -348,10 +232,3 @@ alpha_hat
 
 
 % ....to do
-
-
-
-
-
-
-
