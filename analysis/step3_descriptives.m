@@ -110,8 +110,10 @@ ax.TickDir = 'out';
 box off
 
 % Long pauses, missed taps, or accidental double taps can produce extreme
-% ITIs. Such outliers can strongly influence the mean, which is why the
-% median is often a more robust summary statistic.
+% ITIs. Check the distribution and remove huge outliers manually. 
+
+% Median is often a more robust summary statistic
+Such outliers can strongly influence the mean, which is why the
 mean(itis)
 median(itis)
 
