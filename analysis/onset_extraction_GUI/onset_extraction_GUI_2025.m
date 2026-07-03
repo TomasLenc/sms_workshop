@@ -2,8 +2,7 @@ function f = onset_extraction_GUI()
 
 %% libraries and parameters
 
-addpath(genpath('/Users/tomaslenc/projects_git/ftrsa/src'));
-
+% default parameter values for autodetection
 tap_onset_thr = 0.3;
 tap_onset_min_iti = 0.080;
 
@@ -11,9 +10,14 @@ tap_onset_min_iti = 0.080;
 
 data = [];
 
+% data folder (for load and save)
 data.data_path = '../data';
+
+% output filename (table where tap onset times will be saved)
 data.fname_onsets = 'tap_onsets.csv';
 
+% get a list of tapping files (search for .mat files with aligned
+% continuous data - previous preprocessing steps should be already done)
 d = dir(fullfile(data.data_path, '*_aligned.mat'));
 file_names = {d.name};
 
@@ -312,11 +316,12 @@ function autodetectButtonFun(~, ~)
     thr = str2double(data.handles.thrEdit.String);
     minITI = str2double(data.handles.minITIEdit.String);
 
-    data.tap_onsets = extract_taps( ...
-        data.tap_cont, ...
-        data.fs, ...
-        thr, ...
-        minITI);
+    % find tap onsets
+    tap_indices = find(data.tap_cont > thr) ; 
+    asy = [Inf, diff(tap_indices) / data.fs]; 
+    tap_indices(asy < minITI) = []; 
+    tap_onset_times = tap_indices / data.fs; 
+    data.tap_onsets = tap_onset_times; 
 
     guidata(f, data);
 
@@ -498,5 +503,6 @@ function [xproj, yproj] = nearestPointOnWaveform(xclick, yclick)
     end
 
 end
+
 
 end

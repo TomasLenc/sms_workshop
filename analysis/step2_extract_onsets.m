@@ -12,12 +12,6 @@
 
 clear 
 
-% The function `extract_taps` is in the ftrsa package. Make sure you have
-% the package on your machine (download it from
-% https://github.com/TomasLenc/ftrsa), and update the path below to point
-% to the folder where you've downloaded it.
-addpath(genpath('/Users/tomaslenc/projects_git/ftrsa/src')); 
-
 % load continuous tapping data 
 data = load('data/tap_data_aligned.mat'); 
 
@@ -25,10 +19,21 @@ data = load('data/tap_data_aligned.mat');
 tap_onset_amp_thr = 0.05; 
 tap_onset_min_iti = 0.080; 
 
-tap_onset_times = extract_taps(abs(data.data), ...
-                               data.fs, ...
-                               tap_onset_amp_thr, ...
-                               tap_onset_min_iti, ...
-                               'plot_diagnostic', true); 
+% take the absolute value of the continuous signanl 
+x = abs(data.data); 
+
+% detect tap onsets
+tap_indices = find(x > tap_onset_amp_thr) ; 
+asy = [Inf, diff(tap_indices) / data.fs]; 
+tap_indices(asy < tap_onset_min_iti) = []; 
+tap_onset_times = tap_indices / data.fs; 
+
+% plot
+figure('color', 'w', 'pos', [-415 1596 2517 682]); 
+t = [0:length(x)-1]/data.fs; 
+plot(t, x); 
+hold on 
+plot(t(tap_indices), tap_onset_amp_thr, 'ro')   
+plot([0, t(end)], [tap_onset_amp_thr, tap_onset_amp_thr], 'k:', 'linew', 2)
 
 

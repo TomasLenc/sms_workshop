@@ -2,10 +2,6 @@ function f = onset_extraction_GUI()
 % This function load wav tapping audio files and lets the user define tap
 % onsets using GUI. The onsets are saved to a csv file. 
 
-% the function `extract_taps` is in the ftrsa package (get it from
-% https://github.com/TomasLenc/ftrsa)
-addpath(genpath('/Users/tomaslenc/projects_git/ftrsa/src')); 
-
 % default threshold above which taps are going to be detected
 tap_onset_thr = 0.3; 
 tap_onset_min_iti = 0.080; 
@@ -20,7 +16,8 @@ data.data_path = '../data';
 % output filename 
 data.fname_onsets = 'tap_onsets.csv'; 
 
-% get a list of tapping files 
+% get a list of tapping files (search for .mat files with aligned
+% continuous data - previous preprocessing steps should be already done)
 d = dir(fullfile(data.data_path, '*_aligned.mat')); 
 file_names = {d.name}; 
 
@@ -176,7 +173,14 @@ function autodetectButtonFun(h, eventdata)
     data = get(0,'userdata'); 
     thr = str2num(data.handles.thrEdit.String); 
     minITI = str2num(data.handles.minITIEdit.String); 
-    data.tap_onsets = extract_taps(data.tap_cont, data.fs, thr, minITI);    
+
+    % find tap onsets
+    tap_indices = find(data.tap_cont > thr) ; 
+    asy = [Inf, diff(tap_indices) / data.fs]; 
+    tap_indices(asy < minITI) = []; 
+    tap_onset_times = tap_indices / data.fs; 
+    data.tap_onsets = tap_onset_times; 
+
     set(0,'userdata',data);
     updateOnsetsTable()
     updatePlot()

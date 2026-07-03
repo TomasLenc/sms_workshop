@@ -1,20 +1,39 @@
-This GUI can be used to detect tap onset times (i.e. times where the finger contacted the tapping surface), based on continuous data measured with a tapping box (hardware setup explained in class - see the slides for more details). 
+# Tap Onset Extraction GUI
 
-The GUI is intentionally made very simple, so that it can be **inspected and adapted** for a particular use case. Please feel inspired :) 
+This GUI can be used to detect **tap onset times** (i.e., the moments when a finger makes contact with the tapping surface) from continuous recordings acquired with the tapping box. The hardware setup is explained in class; see the lecture slides for details.
 
-There are two versions of the GUI. 
+The GUI is intentionally kept very simple so that it can be easily **inspected, understood, and adapted** to specific use cases. Feel free to modify it and build on it for your own projects.
 
-### 2018 version
+Two versions of the GUI are provided.
 
-`onset_extraction_GUI_2018.m` was tested under MATLAB 2018a on Mac. Due to changes in the figure interaction framework that Matlab introduced between 2018 and 2020, this won't work on more recent versions, in which case, try the 2025 version (below). 
+## 2018 Version
 
-Quickstart: 
-1. Run the `onset_extraction_GUI_2018.m` file in Matlab (first, change working directory to the folder where the file is located). 
-2. This should already load the continuous signal recorded from the tapping box, and check if there are any tap onset times already detected. If not, it will automatically detect them. 
-3. Play with value for Amplitude threshold and click "autodetect". The minimum ITI value is less useful, and autodetect generally works fine when it's set to ~0.100 s. 
-4. Once you've achieved reasonable autodetection, you can manually correct the results. If you want to delete a detected tap, just click on the red point. If you want to add a tap, just click at a point on the continuous waveform where you want the tap to be. 
+`onset_extraction_GUI_2018.m` was tested under **MATLAB 2018a** on macOS.
 
-### 2025 version
+Due to changes in MATLAB's figure interaction framework introduced in later releases, this version may not work correctly in more recent MATLAB versions. If you experience issues, use the 2025 version described below.
 
-`onset_extraction_GUI_2025.m` was tested under MATLAB 2025a on Mac, and it should work on the more recent figure interface. 
+### Quick Start
 
+1. Open MATLAB and change the working directory to the folder containing `onset_extraction_GUI_2018.m`.
+
+2. Run `onset_extraction_GUI_2018.m`.
+
+3. The GUI will load the continuous tapping signal and check whether tap onset times have already been detected. If no onset file is found, the GUI will automatically perform onset detection.
+
+4. Adjust the **Amplitude threshold** and click **autodetect** to re-run the detection algorithm. The **Minimum ITI** parameter is usually less critical; a value around **0.080 s** generally works well.
+
+5. Once the automatic detection looks reasonable, you can manually correct the results:
+   - Select the **Data Cursor** tool in the figure toolbar.
+   - To **delete** a detected tap, click on the corresponding red marker.
+   - To **add** a tap, click on the waveform at the desired onset location.
+
+## 2025 Version
+
+`onset_extraction_GUI_2025.m` was tested under **MATLAB 2025a** on macOS and is compatible with MATLAB's newer figure interface.
+
+The workflow is largely identical to the 2018 version. The main difference concerns manual editing:
+
+- To **add** or **remove** tap onsets, make sure that **no interactive tool is active** in the figure toolbar (i.e. you should **not** be in **Zoom**, **Pan**, or **Data Tips** mode).  
+- Once all tools are deselected, clicking on the waveform adds a tap onset and clicking on a red marker removes it.
+
+In short, the figure must be in its default interaction mode before manual editing is possible.
